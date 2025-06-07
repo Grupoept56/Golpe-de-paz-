@@ -1,0 +1,164 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Golpe de Paz</title>
+    <style>
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: #000;
+        }
+        body {
+            background: #111;
+            color: white;
+            font-family: sans-serif;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Golpe de Paz</h1>
+    <canvas id="gameCanvas" width="960" height="540"></canvas>
+    <p>Flechas para moverse, espacio para saltar</p>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const background = new Image();
+        background.src = "background.png";
+
+        const humanSprite = new Image();
+        humanSprite.src = "human_sprite.png";
+
+        const toroSprite = new Image();
+        toroSprite.src = "toro_sprite.png";
+
+        const consejos = [
+            "Respira profundamente antes de reaccionar.",
+            "Cuenta hasta diez antes de actuar.",
+            "Habla con alguien de confianza.",
+            "Haz ejercicio para liberar tensión.",
+            "Tómate un descanso cuando estés molesto."
+        ];
+
+        let coinCount = 0;
+        let currentConsejo = "";
+
+        const human = {
+            x: 100,
+            y: 440,
+            width: 32,
+            height: 32,
+            velocityY: 0,
+            jumping: false,
+            frase: "Calmate que ya llego",
+            vida: 3
+        };
+
+        const toro = {
+            x: 1800,
+            y: 440,
+            width: 48,
+            height: 48,
+            vida: 3
+        };
+
+        let monedas = [];
+        for (let i = 0; i < 10; i++) {
+            monedas.push({ x: 300 + i * 200, y: 460, collected: false });
+        }
+
+        let keys = {};
+        window.addEventListener("keydown", (e) => keys[e.key] = true);
+        window.addEventListener("keyup", (e) => keys[e.key] = false);
+
+        let scrollX = 0;
+        let gameOver = false;
+        let finalMessage = "";
+
+        function update() {
+            if (gameOver) return;
+
+            if (keys["ArrowRight"]) human.x += 5;
+            if (keys["ArrowLeft"]) human.x -= 5;
+            if (keys[" "] && !human.jumping) {
+                human.velocityY = -12;
+                human.jumping = true;
+            }
+
+            human.y += human.velocityY;
+            human.velocityY += 0.5;
+            if (human.y >= 440) {
+                human.y = 440;
+                human.velocityY = 0;
+                human.jumping = false;
+            }
+
+            monedas.forEach(moneda => {
+                if (!moneda.collected &&
+                    human.x < moneda.x + 20 &&
+                    human.x + human.width > moneda.x &&
+                    human.y + human.height > moneda.y) {
+                    moneda.collected = true;
+                    coinCount++;
+                    currentConsejo = consejos[Math.floor(Math.random() * consejos.length)];
+                }
+            });
+
+            if (human.x >= toro.x - 50) {
+                // Simulación de batalla
+                if (Math.random() > 0.5) {
+                    finalMessage = "¡Human ganó! Me lo bajé";
+                } else {
+                    finalMessage = "Jaja perdiste lero lero candelero";
+                }
+                gameOver = true;
+            }
+
+            scrollX = human.x - 100;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(background, -scrollX, 0, background.width, canvas.height);
+
+            // Monedas
+            monedas.forEach(moneda => {
+                if (!moneda.collected) {
+                    ctx.fillStyle = "yellow";
+                    ctx.beginPath();
+                    ctx.arc(moneda.x - scrollX, moneda.y, 10, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            // Human y toro
+            ctx.drawImage(humanSprite, human.x - scrollX, human.y, human.width, human.height);
+            ctx.drawImage(toroSprite, toro.x - scrollX, toro.y, toro.width, toro.height);
+
+            // Texto
+            ctx.fillStyle = "white";
+            ctx.font = "16px Arial";
+            ctx.fillText(`Monedas: ${coinCount}`, 20, 20);
+            ctx.fillText(human.frase, human.x - scrollX, human.y - 10);
+            if (currentConsejo) ctx.fillText(currentConsejo, 20, 40);
+
+            if (gameOver) {
+                ctx.font = "30px Arial";
+                ctx.fillText("Game Over", canvas.width / 2 - 80, canvas.height / 2);
+                ctx.fillText(finalMessage, canvas.width / 2 - 120, canvas.height / 2 + 40);
+            }
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+    </script>
+</body>
+</html>
